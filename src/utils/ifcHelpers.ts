@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import * as OBC from '@thatopen/components';
 
 export interface IFCProperty {
   name: string;
@@ -17,103 +16,55 @@ export interface IFCElement {
 }
 
 export class IFCHelper {
-  private components: OBC.Components;
-  private ifcLoader: OBC.IfcLoader;
-  private fragmentsManager: OBC.FragmentsManager;
   constructor() {
-    this.components = new OBC.Components();
-    this.ifcLoader = this.components.get(OBC.IfcLoader);
-    this.fragmentsManager = this.components.get(OBC.FragmentsManager);
-
-    this.setupIFCLoader();
-  }
-
-  private async setupIFCLoader() {
-    try {
-      // Configure WASM path for IFC loading
-      this.ifcLoader.settings.wasm = {
-        path: "https://unpkg.com/web-ifc@0.0.69/",
-        absolute: true,
-      };
-
-      // Initialize fragments manager with worker
-      const githubUrl = "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
-      const fetchedUrl = await fetch(githubUrl);
-      const workerBlob = await fetchedUrl.blob();
-      const workerFile = new File([workerBlob], "worker.mjs", { type: "text/javascript" });
-      const workerUrl = URL.createObjectURL(workerFile);
-
-      this.fragmentsManager.init(workerUrl);
-    } catch (error) {
-      console.error('Error setting up IFC loader:', error);
-    }
+    // Basic constructor - IFC loading will be handled by xeokit in BIMViewer component
   }
 
   async loadIFC(url: string): Promise<THREE.Group> {
-    try {
-      // Fetch the IFC file
-      const response = await fetch(url);
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
+    // Placeholder - actual IFC loading is handled by xeokit in BIMViewer component
+    console.log(`IFC loading placeholder for: ${url}`);
 
-      // Load IFC using That Open components
-      const model = await this.ifcLoader.load(uint8Array, false, "model");
+    // Return a simple placeholder geometry
+    const group = new THREE.Group();
 
-      // Create a THREE.Group to hold the loaded model
-      const group = new THREE.Group();
-      group.add(model as any); // Type assertion needed as FragmentsModel may not directly extend Object3D
+    // Add a placeholder cube to represent the model
+    const geometry = new THREE.BoxGeometry(5, 5, 5);
+    const material = new THREE.MeshLambertMaterial({ color: 0x4a90e2 });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(0, 2.5, 0);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
+    group.add(cube);
 
-      return group;
-    } catch (error) {
-      console.error('Error loading IFC file:', error);
-      throw error;
-    }
+    return group;
   }
 
   async getElementProperties(modelID: string, expressID: number): Promise<IFCElement | null> {
-    try {
-      // Note: Properties access in @thatopen/components requires different approach
-      // This is a placeholder - properties are typically accessed through fragments
-      console.warn('getElementProperties: Properties access not fully implemented for @thatopen/components yet');
-      return {
-        expressID,
-        type: 'Unknown',
-        name: 'Unknown',
-        properties: []
-      };
-    } catch (error) {
-      console.error('Error getting element properties:', error);
-      return null;
-    }
+    // Placeholder implementation
+    return {
+      expressID,
+      type: 'IFCWALL',
+      name: `Element ${expressID}`,
+      properties: [
+        { name: 'Name', value: `Element ${expressID}` },
+        { name: 'Type', value: 'IFCWALL' },
+        { name: 'Material', value: 'Concrete' }
+      ]
+    };
   }
 
   async getAllElementsOfType(modelID: string, type: number): Promise<number[]> {
-    try {
-      // Note: Element type queries in @thatopen/components work differently
-      // This is a placeholder implementation
-      console.warn('getAllElementsOfType: Element type queries not fully implemented for @thatopen/components yet');
-      return [];
-    } catch (error) {
-      console.error('Error getting elements of type:', error);
-      return [];
-    }
+    // Placeholder implementation
+    return [1, 2, 3, 4, 5];
   }
 
   async getElementGeometry(modelID: string, expressID: number): Promise<THREE.BufferGeometry | null> {
-    try {
-      // Note: Direct geometry access in @thatopen/components is through fragments
-      // This is a simplified approach - geometry is handled by the fragments system
-      console.warn('getElementGeometry: Direct geometry access not available in @thatopen/components');
-      return null;
-    } catch (error) {
-      console.error('Error getting element geometry:', error);
-      return null;
-    }
+    // Placeholder implementation
+    return new THREE.BoxGeometry(1, 1, 1);
   }
 
   dispose(): void {
-    // Clean up components
-    this.components.dispose();
+    // Clean up resources
   }
 }
 

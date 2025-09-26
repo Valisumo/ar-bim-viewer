@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import * as OBC from '@thatopen/components';
 import { supabase, BIMProject } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from '../layout/Header';
