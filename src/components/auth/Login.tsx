@@ -38,35 +38,35 @@ const Login: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: '#f9fafb',
+      backgroundColor: 'var(--bg-secondary)',
       padding: '20px'
     }}>
       <div style={{
         width: '100%',
         maxWidth: '400px',
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         borderRadius: '8px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 4px 6px var(--shadow)',
         padding: '40px'
       }}>
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <h2 style={{
             fontSize: '24px',
             fontWeight: 'bold',
-            color: '#111827',
+            color: 'var(--text-primary)',
             marginBottom: '8px'
           }}>
             Sign in to AR-BIM Viewer
           </h2>
           <p style={{
-            color: '#6b7280',
+            color: 'var(--text-secondary)',
             fontSize: '14px'
           }}>
             Or{' '}
             <button
               onClick={handleGuestLogin}
               style={{
-                color: '#3b82f6',
+                color: 'var(--accent-primary)',
                 textDecoration: 'underline',
                 background: 'none',
                 border: 'none',
@@ -87,7 +87,7 @@ const Login: React.FC = () => {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: 'var(--text-primary)',
                 marginBottom: '4px'
               }}
             >
@@ -102,11 +102,13 @@ const Login: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '12px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 borderRadius: '6px',
                 fontSize: '14px',
                 outline: 'none',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)'
               }}
               placeholder="Enter your email"
             />
@@ -119,7 +121,7 @@ const Login: React.FC = () => {
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: '500',
-                color: '#374151',
+                color: 'var(--text-primary)',
                 marginBottom: '4px'
               }}
             >
@@ -134,11 +136,13 @@ const Login: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '12px',
-                border: '1px solid #d1d5db',
+                border: '1px solid var(--border-color)',
                 borderRadius: '6px',
                 fontSize: '14px',
                 outline: 'none',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)'
               }}
               placeholder="Enter your password"
             />
@@ -146,13 +150,13 @@ const Login: React.FC = () => {
 
           {error && (
             <div style={{
-              backgroundColor: '#fef2f2',
-              color: '#dc2626',
+              backgroundColor: 'rgba(220, 53, 69, 0.1)',
+              color: 'var(--danger)',
               padding: '12px',
               borderRadius: '6px',
               fontSize: '14px',
               marginBottom: '16px',
-              border: '1px solid #fecaca'
+              border: '1px solid rgba(220, 53, 69, 0.2)'
             }}>
               {error}
             </div>
@@ -164,7 +168,7 @@ const Login: React.FC = () => {
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+              backgroundColor: loading ? 'var(--text-muted)' : 'var(--accent-primary)',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -182,7 +186,7 @@ const Login: React.FC = () => {
           <Link
             to="/signup"
             style={{
-              color: '#3b82f6',
+              color: 'var(--accent-primary)',
               textDecoration: 'none',
               fontSize: '14px'
             }}

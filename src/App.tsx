@@ -1,8 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/auth/Login';
+import SignUpScreen from './components/auth/SignUpScreen';
 import Dashboard from './components/Dashboard';
 import AdminPanel from './components/admin/AdminPanel';
 import BIMViewer from './components/viewer/BIMViewer';
@@ -10,8 +11,13 @@ import SimpleBIMViewer from './components/viewer/SimpleBIMViewer';
 import Header from './components/layout/Header';
 import './App.css';
 
+function SignUp() {
+  const navigate = useNavigate();
+  return <SignUpScreen onSwitchToLogin={() => navigate('/login')} />;
+}
+
 function AppRouter() {
-  const { loading, user } = useAuth();
+  const { loading, user, profile } = useAuth();
 
   if (loading) {
     return (
@@ -27,9 +33,13 @@ function AppRouter() {
     );
   }
 
+  // Consider user authenticated if they have a user account OR are a guest
+  const isAuthenticated = user || profile;
+
   return (
     <Routes>
-      {!user ? (
+      <Route path="/signup" element={<SignUp />} />
+      {!isAuthenticated ? (
         <>
           <Route path="/login" element={<Login />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
