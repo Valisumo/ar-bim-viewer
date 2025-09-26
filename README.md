@@ -80,7 +80,7 @@ A comprehensive React-based AR-BIM viewer application for visualizing and mainta
 ```bash
 git clone <repository-url>
 cd ar-bim-viewer
-npm install
+npm install --force
 ```
 
 ### 2. Download WASM Files
