@@ -5,6 +5,7 @@ A comprehensive React-based AR-BIM viewer application for visualizing and mainta
 ![AR-BIM Viewer](https://img.shields.io/badge/React-18.2.0-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue) ![Three.js](https://img.shields.io/badge/Three.js-0.135.0-black) ![WebXR](https://img.shields.io/badge/WebXR-API-green) ![Supabase](https://img.shields.io/badge/Supabase-2.38.0-orange)
 
 ## 🌟 Features
+<img width="975" height="1204" alt="image" src="https://github.com/user-attachments/assets/f05b3610-b42e-4b0b-901d-77f030fa41cd" />
 
 ### 🏗️ **3D BIM Visualization**
 - **Multiple Viewers**: Choose between Xeokit and Simple BIM viewers
@@ -12,6 +13,8 @@ A comprehensive React-based AR-BIM viewer application for visualizing and mainta
 - **Interactive Navigation**: Orbit, pan, zoom controls with camera presets
 - **Component Selection**: Click-to-select BIM components with detailed properties
 - **Performance Optimized**: WebGL acceleration with LOD (Level of Detail)
+<img width="975" height="1204" alt="image" src="https://github.com/user-attachments/assets/86878191-2c44-40d7-ba6e-eeec2b98a324" />
+<img width="975" height="444" alt="image" src="https://github.com/user-attachments/assets/cf7b6742-3cf0-41ab-852d-c601866a90b2" />
 
 ### 📱 **Augmented Reality (AR)**
 - **WebXR Integration**: Native AR support for AR-capable devices
@@ -26,6 +29,7 @@ A comprehensive React-based AR-BIM viewer application for visualizing and mainta
 - **Touch Controls**: Optimized for field work on mobile devices
 - **Admin Dashboard**: User management and system analytics
 - **Role-Based Access**: Guest, User, and Admin permission levels
+<img width="975" height="444" alt="image" src="https://github.com/user-attachments/assets/b28093ca-a267-4ba4-b83d-70d1738c4646" />
 
 ### 📊 **Data Management**
 - **Supabase Backend**: PostgreSQL database with real-time subscriptions
