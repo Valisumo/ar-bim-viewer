@@ -1,5 +1,5 @@
-import { IFCLoader } from 'web-ifc-three/IFCLoader';
 import * as THREE from 'three';
+import * as OBC from '@thatopen/components';
 
 export interface IFCProperty {
   name: string;
@@ -17,32 +17,69 @@ export interface IFCElement {
 }
 
 export class IFCHelper {
-  private loader: IFCLoader;
-
+  private components: OBC.Components;
+  private ifcLoader: OBC.IfcLoader;
+  private fragmentsManager: OBC.FragmentsManager;
   constructor() {
-    this.loader = new IFCLoader();
-    this.loader.ifcManager.setWasmPath('/wasm/');
+    this.components = new OBC.Components();
+    this.ifcLoader = this.components.get(OBC.IfcLoader);
+    this.fragmentsManager = this.components.get(OBC.FragmentsManager);
+
+    this.setupIFCLoader();
+  }
+
+  private async setupIFCLoader() {
+    try {
+      // Configure WASM path for IFC loading
+      this.ifcLoader.settings.wasm = {
+        path: "https://unpkg.com/web-ifc@0.0.69/",
+        absolute: true,
+      };
+
+      // Initialize fragments manager with worker
+      const githubUrl = "https://thatopen.github.io/engine_fragment/resources/worker.mjs";
+      const fetchedUrl = await fetch(githubUrl);
+      const workerBlob = await fetchedUrl.blob();
+      const workerFile = new File([workerBlob], "worker.mjs", { type: "text/javascript" });
+      const workerUrl = URL.createObjectURL(workerFile);
+
+      this.fragmentsManager.init(workerUrl);
+    } catch (error) {
+      console.error('Error setting up IFC loader:', error);
+    }
   }
 
   async loadIFC(url: string): Promise<THREE.Group> {
     try {
-      const model = await this.loader.loadAsync(url);
-      return model;
+      // Fetch the IFC file
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // Load IFC using That Open components
+      const model = await this.ifcLoader.load(uint8Array, false, "model");
+
+      // Create a THREE.Group to hold the loaded model
+      const group = new THREE.Group();
+      group.add(model as any); // Type assertion needed as FragmentsModel may not directly extend Object3D
+
+      return group;
     } catch (error) {
       console.error('Error loading IFC file:', error);
       throw error;
     }
   }
 
-  async getElementProperties(modelID: number, expressID: number): Promise<IFCElement | null> {
+  async getElementProperties(modelID: string, expressID: number): Promise<IFCElement | null> {
     try {
-      const properties = await this.loader.ifcManager.getItemProperties(modelID, expressID);
-      
+      // Note: Properties access in @thatopen/components requires different approach
+      // This is a placeholder - properties are typically accessed through fragments
+      console.warn('getElementProperties: Properties access not fully implemented for @thatopen/components yet');
       return {
         expressID,
-        type: properties.constructor.name,
-        name: properties.Name?.value || 'Unknown',
-        properties: this.flattenProperties(properties)
+        type: 'Unknown',
+        name: 'Unknown',
+        properties: []
       };
     } catch (error) {
       console.error('Error getting element properties:', error);
@@ -50,20 +87,23 @@ export class IFCHelper {
     }
   }
 
-  async getAllElementsOfType(modelID: number, type: number): Promise<number[]> {
+  async getAllElementsOfType(modelID: string, type: number): Promise<number[]> {
     try {
-      return await this.loader.ifcManager.getAllItemsOfType(modelID, type, false);
+      // Note: Element type queries in @thatopen/components work differently
+      // This is a placeholder implementation
+      console.warn('getAllElementsOfType: Element type queries not fully implemented for @thatopen/components yet');
+      return [];
     } catch (error) {
       console.error('Error getting elements of type:', error);
       return [];
     }
   }
 
-  async getElementGeometry(modelID: number, expressID: number): Promise<THREE.BufferGeometry | null> {
+  async getElementGeometry(modelID: string, expressID: number): Promise<THREE.BufferGeometry | null> {
     try {
-      // Note: Direct geometry access may not be available in current web-ifc-three
-      // This is a placeholder implementation
-      console.warn('getElementGeometry: Direct geometry access not implemented');
+      // Note: Direct geometry access in @thatopen/components is through fragments
+      // This is a simplified approach - geometry is handled by the fragments system
+      console.warn('getElementGeometry: Direct geometry access not available in @thatopen/components');
       return null;
     } catch (error) {
       console.error('Error getting element geometry:', error);
@@ -71,37 +111,9 @@ export class IFCHelper {
     }
   }
 
-  private flattenProperties(obj: any, prefix = ''): IFCProperty[] {
-    const properties: IFCProperty[] = [];
-    
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        const value = obj[key];
-        const propName = prefix ? `${prefix}.${key}` : key;
-        
-        if (value && typeof value === 'object' && value.value !== undefined) {
-          properties.push({
-            name: propName,
-            value: value.value,
-            type: value.type || typeof value.value
-          });
-        } else if (value && typeof value === 'object' && !Array.isArray(value)) {
-          properties.push(...this.flattenProperties(value, propName));
-        } else if (value !== null && value !== undefined) {
-          properties.push({
-            name: propName,
-            value: value,
-            type: typeof value
-          });
-        }
-      }
-    }
-    
-    return properties;
-  }
-
   dispose(): void {
-    this.loader.ifcManager.dispose();
+    // Clean up components
+    this.components.dispose();
   }
 }
 

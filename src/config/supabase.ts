@@ -1,45 +1,59 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || 'your-supabase-url';
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY || 'your-supabase-anon-key';
+const url = process.env.REACT_APP_SUPABASE_URL;
+const key = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+console.log(' Supabase Environment Check:');
+console.log('  - REACT_APP_SUPABASE_URL:', url ? ' SET' : ' MISSING');
+console.log('  - REACT_APP_SUPABASE_ANON_KEY:', key ? ' SET' : ' MISSING');
+console.log('  - All env vars:', Object.keys(process.env).filter(k => k.startsWith('REACT_APP_')));
 
+if (!url || !key) {
+  console.error(' Missing Supabase configuration!');
+  console.error('Please ensure your .env file contains:');
+  console.error('  REACT_APP_SUPABASE_URL=your_supabase_project_url');
+  console.error('  REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key');
+  throw new Error('Missing Supabase configuration. Check your .env file.');
+}
+
+export const supabase = createClient(url, key);
+
+// Export types
 export type UserRole = 'admin' | 'user' | 'guest';
-
-export interface UserProfile {
+export type UserProfile = {
   id: string;
-  email?: string;
   role: UserRole;
   full_name?: string;
-  avatar_url?: string;
+  email?: string;
   created_at: string;
   updated_at: string;
-}
+};
 
-export interface BIMProject {
+export type BIMProject = {
   id: string;
   name: string;
-  description?: string;
-  ifc_file_url?: string;
-  thumbnail_url?: string;
+  description?: string | null;
+  ifc_file_url?: string | null;
   created_by: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string | null;
+  // Fields required by AdminPanel, ProjectCard, SimpleBIMViewer, ViewerControls
   is_public: boolean;
-}
+  thumbnail_url?: string | null;
+};
 
-export interface ComponentInfo {
+export type ComponentInfo = {
   id: string;
   project_id: string;
-  component_id: string;
   name: string;
   type: string;
-  properties: Record<string, any>;
-  maintenance_notes?: string;
-  last_inspection?: string;
-  next_inspection?: string;
-  status: 'good' | 'warning' | 'critical';
+  properties?: Record<string, any>;
+  geometry?: any;
   created_at: string;
   updated_at: string;
-}
+  // Fields required by ARControls and ComponentPanel
+  status?: 'good' | 'warning' | 'critical';
+  maintenance_notes?: string | null;
+  last_inspection?: string | null; // ISO date string
+  next_inspection?: string | null; // ISO date string
+};

@@ -8,22 +8,19 @@ interface UploadModalProps {
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
-  const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [file, setFile] = useState<File | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
-  const { profile } = useAuth();
+  const { user } = useAuth();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
       if (selectedFile.name.toLowerCase().endsWith('.ifc')) {
         setFile(selectedFile);
-        if (!name) {
-          setName(selectedFile.name.replace('.ifc', ''));
-        }
         setError('');
       } else {
         setError('Please select a valid IFC file');
@@ -34,91 +31,49 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !name || !profile?.id) {
-      setError('Please ensure you are logged in and all fields are filled');
+
+    if (!file || !name.trim() || !user) {
+      setError('Please fill in all required fields');
       return;
     }
 
     setUploading(true);
     setError('');
 
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      setError('Upload timeout - please try again with a smaller file');
-      setUploading(false);
-    }, 60000); // 60 second timeout
-
     try {
-      console.log('Starting file upload...', { fileName: file.name, fileSize: file.size });
-
-      // First, check if the bucket exists
-      const { data: buckets, error: bucketError } = await supabase.storage.listBuckets();
-      console.log('Available buckets:', buckets, 'Bucket error:', bucketError);
-
-      const ifcBucket = buckets?.find(bucket => bucket.name === 'ifc-files');
-      if (!ifcBucket) {
-        throw new Error('Storage bucket "ifc-files" not found. Please create it in Supabase dashboard.');
-      }
-
       // Upload file to Supabase Storage
-      const fileExt = 'ifc';
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `projects/${fileName}`;
 
-      console.log('Uploading to path:', filePath);
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('ifc-files')
+      const { error: uploadError } = await supabase.storage
+        .from('bim-files')
         .upload(filePath, file);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      console.log('File uploaded successfully:', uploadData);
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('ifc-files')
-        .getPublicUrl(filePath);
-
-      console.log('Public URL:', publicUrl);
-
-      // Create project record in database
-      const { data: insertData, error: insertError } = await supabase
+      // Create project record
+      const { error: dbError } = await supabase
         .from('projects')
         .insert({
-          name: name,
-          description: description || 'Uploaded IFC project',
-          ifc_file_url: publicUrl,
-          thumbnail_url: publicUrl.replace('.ifc', '.jpg'), // Placeholder thumbnail
-          created_by: profile.id,
+          name: name.trim(),
+          description: description.trim() || null,
+          ifc_file_url: filePath,
+          created_by: user.id,
           is_public: isPublic
         });
 
-      if (insertError) {
-        throw insertError;
+      if (dbError) {
+        throw dbError;
       }
 
-      console.log('Project created successfully:', insertData);
-
-      clearTimeout(timeoutId);
-      console.log('Upload successful, calling onSuccess...');
       onSuccess();
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      console.error('Upload failed:', error);
-
-      // Handle specific error types
-      if (error.message?.includes('bucket')) {
-        setError('Storage bucket not found. Please create "ifc-files" bucket in Supabase dashboard.');
-      } else if (error.message?.includes('timeout')) {
-        setError('Upload timeout. Please try with a smaller file.');
-      } else if (error.message?.includes('size')) {
-        setError('File too large. Please try with a smaller IFC file.');
-      } else {
-        setError(error.message || 'Failed to upload file. Please try again.');
-      }
+      onClose();
+    } catch (error) {
+      console.error('Upload error:', error);
+      setError(error instanceof Error ? error.message : 'Upload failed');
     } finally {
       setUploading(false);
     }
@@ -135,17 +90,31 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px'
+      zIndex: 1000
     }}>
-      <div className="card" style={{ maxWidth: '500px', width: '100%' }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '24px',
+        width: '100%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px'
+          marginBottom: '24px'
         }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>Upload IFC File</h2>
+          <h2 style={{
+            fontSize: '20px',
+            fontWeight: '600',
+            color: '#111827',
+            margin: 0
+          }}>
+            Upload BIM Project
+          </h2>
           <button
             onClick={onClose}
             style={{
@@ -153,103 +122,180 @@ const UploadModal: React.FC<UploadModalProps> = ({ onClose, onSuccess }) => {
               border: 'none',
               fontSize: '24px',
               cursor: 'pointer',
-              color: 'var(--text-secondary)'
+              color: '#6b7280'
             }}
           >
-            ×
+            
           </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">IFC File</label>
-            <input
-              type="file"
-              accept=".ifc"
-              onChange={handleFileChange}
-              className="form-control"
-              required
-              disabled={uploading}
-            />
-            <small style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-              Only .ifc files are supported
-            </small>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Project Name</label>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '4px'
+            }}>
+              Project Name *
+            </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="form-control"
               required
-              disabled={uploading}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
               placeholder="Enter project name"
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Description (Optional)</label>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '4px'
+            }}>
+              Description
+            </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="form-control"
-              rows={3}
-              disabled={uploading}
-              placeholder="Describe your project..."
-              style={{ resize: 'vertical' }}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                minHeight: '80px',
+                resize: 'vertical'
+              }}
+              placeholder="Enter project description (optional)"
             />
           </div>
 
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{
+              display: 'block',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              marginBottom: '4px'
+            }}>
+              IFC File *
+            </label>
+            <input
+              type="file"
+              accept=".ifc"
+              onChange={handleFileChange}
+              required
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                fontSize: '14px',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+            {file && (
+              <p style={{
+                fontSize: '12px',
+                color: '#6b7280',
+                marginTop: '4px'
+              }}>
+                Selected: {file.name}
+              </p>
+            )}
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+              fontSize: '14px',
+              fontWeight: '500',
+              color: '#374151',
+              cursor: 'pointer'
+            }}>
               <input
                 type="checkbox"
                 checked={isPublic}
                 onChange={(e) => setIsPublic(e.target.checked)}
-                disabled={uploading}
+                style={{
+                  marginRight: '8px'
+                }}
               />
-              <span className="form-label" style={{ margin: 0 }}>
-                Make this project public
-              </span>
+              Make project public
             </label>
-            <small style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>
-              Public projects can be viewed by guest users
-            </small>
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280',
+              margin: '4px 0 0 0'
+            }}>
+              Public projects are visible to all users
+            </p>
           </div>
 
           {error && (
             <div style={{
-              color: 'var(--danger-color)',
-              backgroundColor: 'rgba(220, 53, 69, 0.1)',
-              padding: '10px',
-              borderRadius: '4px',
-              marginBottom: '20px',
-              fontSize: '14px'
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              padding: '12px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              marginBottom: '16px',
+              border: '1px solid #fecaca'
             }}>
               {error}
             </div>
           )}
 
-          <div style={{ 
-            display: 'flex', 
-            gap: '10px', 
-            justifyContent: 'flex-end',
-            marginTop: '30px'
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            justifyContent: 'flex-end'
           }}>
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary"
-              disabled={uploading}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6b7280',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
-              disabled={!file || !name || uploading}
+              disabled={uploading || !file || !name.trim()}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: uploading ? '#9ca3af' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                cursor: uploading || !file || !name.trim() ? 'not-allowed' : 'pointer'
+              }}
             >
               {uploading ? 'Uploading...' : 'Upload Project'}
             </button>

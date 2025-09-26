@@ -4,11 +4,26 @@ import { useAuth } from '../../contexts/AuthContext';
 
 interface ComponentPanelProps {
   component: ComponentInfo;
+  onUpdate: (updatedComponent: ComponentInfo) => void;
   onClose: () => void;
-  onUpdate: (component: ComponentInfo) => void;
 }
 
-const ComponentPanel: React.FC<ComponentPanelProps> = ({ component, onClose, onUpdate }) => {
+type Status = 'good' | 'warning' | 'critical';
+
+const getStatusColor = (status?: Status): string => {
+  switch (status) {
+    case 'good':
+      return '#4ade80'; // green
+    case 'warning':
+      return '#fbbf24'; // amber
+    case 'critical':
+      return '#ef4444'; // red
+    default:
+      return '#9CA3AF'; // neutral gray fallback
+  }
+};
+
+const ComponentPanel: React.FC<ComponentPanelProps> = ({ component, onUpdate, onClose }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedComponent, setEditedComponent] = useState(component);
   const { isGuest } = useAuth();
@@ -18,353 +33,267 @@ const ComponentPanel: React.FC<ComponentPanelProps> = ({ component, onClose, onU
     setIsEditing(false);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'good': return 'var(--success-color)';
-      case 'warning': return 'var(--warning-color)';
-      case 'critical': return 'var(--danger-color)';
-      default: return 'var(--text-secondary)';
-    }
-  };
-
-  const formatPropertyValue = (value: any) => {
-    if (value === null || value === undefined) return 'N/A';
-    if (typeof value === 'object' && value.value !== undefined) {
-      return value.value;
-    }
-    return value.toString();
+  const handleCancel = () => {
+    setEditedComponent(component);
+    setIsEditing(false);
   };
 
   return (
-    <div style={{
+    <div className="component-panel" style={{
       position: 'fixed',
-      top: '70px',
+      top: '20px',
       right: '20px',
-      width: '400px',
-      maxHeight: 'calc(100vh - 100px)',
-      backgroundColor: 'var(--bg-secondary)',
-      border: '1px solid var(--border-color)',
+      width: '350px',
+      maxHeight: '80vh',
+      backgroundColor: 'white',
+      border: '1px solid #e5e7eb',
       borderRadius: '8px',
-      boxShadow: '0 4px 12px var(--shadow)',
+      boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
       zIndex: 1000,
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column'
+      overflow: 'hidden'
     }}>
       {/* Header */}
       <div style={{
-        padding: '20px',
-        borderBottom: '1px solid var(--border-color)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        padding: '16px',
+        borderBottom: '1px solid #e5e7eb',
+        backgroundColor: getStatusColor(component.status),
+        color: 'white'
       }}>
-        <h3 style={{ fontSize: '18px', fontWeight: '600', margin: 0 }}>
-          Component Details
-        </h3>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '20px',
-            cursor: 'pointer',
-            color: 'var(--text-secondary)'
-          }}
-        >
-          ×
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            {component.name}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              fontSize: '24px',
+              cursor: 'pointer',
+              padding: '0'
+            }}
+          >
+            
+          </button>
+        </div>
+        <p style={{ margin: '4px 0 0 0', fontSize: '14px', opacity: 0.9 }}>
+          Type: {component.type}
+        </p>
       </div>
 
       {/* Content */}
-      <div style={{ 
-        padding: '20px', 
-        overflowY: 'auto',
-        flex: 1
-      }}>
-        {/* Basic Info */}
-        <div style={{ marginBottom: '25px' }}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: 'var(--text-secondary)',
-              marginBottom: '5px'
-            }}>
-              Name
-            </label>
-            {isEditing ? (
+      <div style={{ padding: '16px', maxHeight: 'calc(80vh - 120px)', overflowY: 'auto' }}>
+        {isEditing ? (
+          <div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Name
+              </label>
               <input
                 type="text"
                 value={editedComponent.name}
-                onChange={(e) => setEditedComponent({
-                  ...editedComponent,
-                  name: e.target.value
-                })}
-                className="form-control"
-                style={{ fontSize: '14px' }}
+                onChange={(e) => setEditedComponent({...editedComponent, name: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
               />
-            ) : (
-              <div style={{ 
-                fontSize: '16px', 
-                fontWeight: '600',
-                color: 'var(--text-primary)'
-              }}>
-                {component.name}
-              </div>
-            )}
-          </div>
+            </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: 'var(--text-secondary)',
-              marginBottom: '5px'
-            }}>
-              Type
-            </label>
-            <div style={{ fontSize: '14px' }}>{component.type}</div>
-          </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Type
+              </label>
+              <input
+                type="text"
+                value={editedComponent.type}
+                onChange={(e) => setEditedComponent({...editedComponent, type: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: 'var(--text-secondary)',
-              marginBottom: '5px'
-            }}>
-              Status
-            </label>
-            {isEditing ? (
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                Status
+              </label>
               <select
-                value={editedComponent.status}
-                onChange={(e) => setEditedComponent({
-                  ...editedComponent,
-                  status: e.target.value as 'good' | 'warning' | 'critical'
-                })}
-                className="form-control"
-                style={{ fontSize: '14px' }}
+                value={editedComponent.status || ''}
+                onChange={(e) => setEditedComponent({...editedComponent, status: e.target.value as Status})}
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '14px'
+                }}
               >
+                <option value="">Unknown</option>
                 <option value="good">Good</option>
                 <option value="warning">Warning</option>
                 <option value="critical">Critical</option>
               </select>
-            ) : (
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '8px',
-                fontSize: '14px'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: getStatusColor(component.status)
-                }}></div>
-                <span style={{ textTransform: 'capitalize' }}>{component.status}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Maintenance Notes */}
-        <div style={{ marginBottom: '25px' }}>
-          <label style={{ 
-            display: 'block', 
-            fontSize: '14px', 
-            fontWeight: '500',
-            color: 'var(--text-secondary)',
-            marginBottom: '5px'
-          }}>
-            Maintenance Notes
-          </label>
-          {isEditing ? (
-            <textarea
-              value={editedComponent.maintenance_notes || ''}
-              onChange={(e) => setEditedComponent({
-                ...editedComponent,
-                maintenance_notes: e.target.value
-              })}
-              className="form-control"
-              rows={3}
-              style={{ fontSize: '14px', resize: 'vertical' }}
-              placeholder="Add maintenance notes..."
-            />
-          ) : (
-            <div style={{ 
-              fontSize: '14px',
-              color: component.maintenance_notes ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontStyle: component.maintenance_notes ? 'normal' : 'italic'
-            }}>
-              {component.maintenance_notes || 'No maintenance notes'}
             </div>
-          )}
-        </div>
 
-        {/* Inspection Dates */}
-        <div style={{ marginBottom: '25px' }}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: 'var(--text-secondary)',
-              marginBottom: '5px'
-            }}>
-              Last Inspection
-            </label>
-            {isEditing ? (
-              <input
-                type="date"
-                value={editedComponent.last_inspection || ''}
-                onChange={(e) => setEditedComponent({
-                  ...editedComponent,
-                  last_inspection: e.target.value
-                })}
-                className="form-control"
-                style={{ fontSize: '14px' }}
-              />
-            ) : (
-              <div style={{ fontSize: '14px' }}>
-                {component.last_inspection 
-                  ? new Date(component.last_inspection).toLocaleDateString()
-                  : 'Not recorded'
-                }
+            {!isGuest && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '4px', fontWeight: '500' }}>
+                  Maintenance Notes
+                </label>
+                <textarea
+                  value={editedComponent.maintenance_notes || ''}
+                  onChange={(e) => setEditedComponent({...editedComponent, maintenance_notes: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    minHeight: '80px',
+                    resize: 'vertical'
+                  }}
+                />
               </div>
             )}
-          </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ 
-              display: 'block', 
-              fontSize: '14px', 
-              fontWeight: '500',
-              color: 'var(--text-secondary)',
-              marginBottom: '5px'
-            }}>
-              Next Inspection
-            </label>
-            {isEditing ? (
-              <input
-                type="date"
-                value={editedComponent.next_inspection || ''}
-                onChange={(e) => setEditedComponent({
-                  ...editedComponent,
-                  next_inspection: e.target.value
-                })}
-                className="form-control"
-                style={{ fontSize: '14px' }}
-              />
-            ) : (
-              <div style={{ fontSize: '14px' }}>
-                {component.next_inspection 
-                  ? new Date(component.next_inspection).toLocaleDateString()
-                  : 'Not scheduled'
-                }
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* IFC Properties */}
-        <div style={{ marginBottom: '25px' }}>
-          <h4 style={{ 
-            fontSize: '16px', 
-            fontWeight: '600',
-            marginBottom: '15px',
-            color: 'var(--text-primary)'
-          }}>
-            IFC Properties
-          </h4>
-          <div style={{
-            backgroundColor: 'var(--bg-tertiary)',
-            borderRadius: '6px',
-            padding: '15px',
-            maxHeight: '200px',
-            overflowY: 'auto'
-          }}>
-            {component.properties && Object.keys(component.properties).length > 0 ? (
-              Object.entries(component.properties).map(([key, value]) => (
-                <div key={key} style={{ 
-                  marginBottom: '8px',
-                  fontSize: '12px',
-                  display: 'flex',
-                  justifyContent: 'space-between'
-                }}>
-                  <span style={{ 
-                    fontWeight: '500',
-                    color: 'var(--text-secondary)',
-                    marginRight: '10px'
-                  }}>
-                    {key}:
-                  </span>
-                  <span style={{ 
-                    color: 'var(--text-primary)',
-                    wordBreak: 'break-word',
-                    textAlign: 'right'
-                  }}>
-                    {formatPropertyValue(value)}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div style={{ 
-                fontSize: '14px',
-                color: 'var(--text-secondary)',
-                fontStyle: 'italic'
-              }}>
-                No properties available
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Footer */}
-      {!isGuest && (
-        <div style={{
-          padding: '20px',
-          borderTop: '1px solid var(--border-color)',
-          display: 'flex',
-          gap: '10px',
-          justifyContent: 'flex-end'
-        }}>
-          {isEditing ? (
-            <>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
               <button
-                onClick={() => {
-                  setEditedComponent(component);
-                  setIsEditing(false);
+                onClick={handleSave}
+                style={{
+                  flex: 1,
+                  padding: '8px 16px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
                 }}
-                className="btn btn-secondary"
-                style={{ fontSize: '14px' }}
+              >
+                Save
+              </button>
+              <button
+                onClick={handleCancel}
+                style={{
+                  flex: 1,
+                  padding: '8px 16px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: '16px' }}>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                Status
+              </h4>
+              <span style={{
+                display: 'inline-block',
+                padding: '4px 8px',
+                backgroundColor: getStatusColor(component.status),
+                color: 'white',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: '500'
+              }}>
+                {component.status || 'unknown'}
+              </span>
+            </div>
+
+            {component.properties && Object.keys(component.properties).length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                  Properties
+                </h4>
+                <div style={{ backgroundColor: '#f9fafb', padding: '12px', borderRadius: '4px' }}>
+                  {Object.entries(component.properties).map(([key, value]) => (
+                    <div key={key} style={{ marginBottom: '4px', fontSize: '14px' }}>
+                      <span style={{ fontWeight: '500' }}>{key}:</span> {String(value)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {component.maintenance_notes && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                  Maintenance Notes
+                </h4>
+                <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>
+                  {component.maintenance_notes}
+                </p>
+              </div>
+            )}
+
+            {(component.last_inspection || component.next_inspection) && (
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '600' }}>
+                  Inspections
+                </h4>
+                {component.last_inspection && (
+                  <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#374151' }}>
+                    <span style={{ fontWeight: '500' }}>Last:</span> {new Date(component.last_inspection).toLocaleDateString()}
+                  </p>
+                )}
+                {component.next_inspection && (
+                  <p style={{ margin: 0, fontSize: '14px', color: '#374151' }}>
+                    <span style={{ fontWeight: '500' }}>Next:</span> {new Date(component.next_inspection).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              {!isGuest && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Edit
+                </button>
+              )}
               <button
-                onClick={handleSave}
-                className="btn btn-primary"
-                style={{ fontSize: '14px' }}
+                onClick={onClose}
+                style={{
+                  flex: 1,
+                  padding: '8px 16px',
+                  backgroundColor: '#6b7280',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
               >
-                Save Changes
+                Close
               </button>
-            </>
-          ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="btn btn-primary"
-              style={{ fontSize: '14px' }}
-            >
-              Edit Component
-            </button>
-          )}
-        </div>
-      )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

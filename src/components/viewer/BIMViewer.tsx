@@ -1,8 +1,15 @@
-// Placeholder BIMViewer - replaced with SimpleBIMViewer
 import React from 'react';
+import { useParams } from 'react-router-dom';
 
 const BIMViewer: React.FC = () => {
-  return <div>BIMViewer placeholder - use SimpleBIMViewer instead</div>;
+  const { projectId } = useParams<{ projectId: string }>();
+  
+  return (
+    <div>
+      <h1>BIM Viewer</h1>
+      <p>Project ID: {projectId}</p>
+    </div>
+  );
 };
 
 export default BIMViewer;

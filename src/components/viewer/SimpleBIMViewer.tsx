@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import * as OBC from '@thatopen/components';
 import { supabase, BIMProject } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from '../layout/Header';
@@ -17,18 +18,17 @@ const SimpleBIMViewer: React.FC = () => {
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const controlsRef = useRef<OrbitControls>();
+  const arSessionRef = useRef<any>(null);
 
   const [project, setProject] = useState<BIMProject | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [viewerReady, setViewerReady] = useState(false);
+  const [isARMode, setIsARMode] = useState(false);
+  const [isXRSupported, setIsXRSupported] = useState(false);
 
   useEffect(() => {
-    console.log('SimpleBIMViewer: Component mounted with projectId:', projectId);
-    console.log('SimpleBIMViewer: Profile:', profile);
-
     if (!projectId) {
-      console.log('SimpleBIMViewer: No projectId, navigating to home');
       navigate('/');
       return;
     }
@@ -41,16 +41,79 @@ const SimpleBIMViewer: React.FC = () => {
   }, [projectId]);
 
   useEffect(() => {
+    // Check WebXR support asynchronously - comprehensive HoloLens debugging
+    const checkXRSupport = async () => {
+      console.log('🔍 Starting comprehensive WebXR check for HoloLens...');
+      console.log('🌐 Current URL:', window.location.href);
+      console.log('🔒 Is HTTPS:', window.location.protocol === 'https:');
+      console.log('📱 Full User Agent:', navigator.userAgent);
+
+      // Check if WebXR API exists
+      if (!navigator.xr) {
+        console.log('❌ WebXR API not available in navigator');
+        setIsXRSupported(false);
+        return;
+      }
+
+      console.log('✅ WebXR API found in navigator');
+
+      try {
+        // Check all possible session types
+        const sessionTypes: XRSessionMode[] = ['immersive-vr', 'immersive-ar', 'inline'];
+        const results: Record<string, boolean> = {};
+
+        console.log('🔎 Checking session support...');
+
+        for (const type of sessionTypes) {
+          try {
+            console.log(`⏳ Checking ${type}...`);
+            const supported = await navigator.xr.isSessionSupported(type);
+            results[type] = supported;
+            console.log(`✅ ${type}: ${supported ? 'SUPPORTED' : 'NOT SUPPORTED'}`);
+          } catch (error) {
+            results[type] = false;
+            console.log(`❌ ${type}: ERROR - ${(error as Error).message}`);
+          }
+        }
+
+        const hasXRSupport = results['immersive-vr'] || results['immersive-ar'] || results['inline'];
+
+        console.log('📊 Final Results:');
+        console.log('  - immersive-vr:', results['immersive-vr']);
+        console.log('  - immersive-ar:', results['immersive-ar']);
+        console.log('  - inline:', results['inline']);
+        console.log('  - Overall support:', hasXRSupport);
+
+        // Additional HoloLens-specific checks
+        console.log('🎭 HoloLens-specific checks:');
+        console.log('  - Has WebXR:', !!navigator.xr);
+        console.log('  - Has requestSession:', typeof navigator.xr.requestSession === 'function');
+        console.log('  - Has isSessionSupported:', typeof navigator.xr.isSessionSupported === 'function');
+
+        setIsXRSupported(hasXRSupport);
+
+      } catch (error) {
+        console.error('💥 WebXR support check completely failed:', error);
+        setIsXRSupported(false);
+      }
+    };
+
+    // Longer delay for HoloLens initialization
+    setTimeout(checkXRSupport, 500);
+  }, []);
+
+  useEffect(() => {
     if (project && !viewerReady) {
-      console.log('SimpleBIMViewer: Project loaded, initializing viewer');
       initializeViewer();
     }
   }, [project, viewerReady]);
 
+  useEffect(() => {
+    // Component mounted
+  }, []);
+
   const fetchProject = async () => {
     try {
-      console.log('SimpleBIMViewer: Fetching project:', projectId);
-
       const mockProject: BIMProject = {
         id: projectId || 'default-project',
         name: 'Hydroelectric Plant - Viewer Demo',
@@ -63,22 +126,19 @@ const SimpleBIMViewer: React.FC = () => {
         updated_at: '2024-01-15T10:30:00Z'
       };
 
-      console.log('SimpleBIMViewer: Using mock project:', mockProject);
       setProject(mockProject);
     } catch (error) {
-      console.error('SimpleBIMViewer: Error fetching project:', error);
+      console.error('Error fetching project:', error);
       setError('Failed to load project');
     } finally {
       setLoading(false);
     }
   };
 
-  const initializeViewer = () => {
+  const initializeViewer = async () => {
     if (!mountRef.current || viewerReady) return;
 
     try {
-      console.log('SimpleBIMViewer: Initializing 3D viewer...');
-
       // Scene
       const scene = new THREE.Scene();
       scene.background = new THREE.Color(0xf0f0f0);
@@ -94,11 +154,12 @@ const SimpleBIMViewer: React.FC = () => {
       camera.position.set(10, 10, 10);
       cameraRef.current = camera;
 
-      // Renderer
+      // Renderer with WebXR support
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.xr.enabled = true; // Enable WebXR
       rendererRef.current = renderer;
 
       // Controls
@@ -120,86 +181,38 @@ const SimpleBIMViewer: React.FC = () => {
       const gridHelper = new THREE.GridHelper(100, 100);
       scene.add(gridHelper);
 
-      // Add hydroelectric plant components
-      const objects = [];
-
-      // Main building structure
-      const buildingGeometry = new THREE.BoxGeometry(10, 8, 15);
-      const buildingMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-      const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
-      building.position.set(0, 4, 0);
-      building.castShadow = true;
-      building.receiveShadow = true;
-      scene.add(building);
-      objects.push(building);
-
-      // Roof
-      const roofGeometry = new THREE.ConeGeometry(8, 3, 4);
-      const roofMaterial = new THREE.MeshLambertMaterial({ color: 0x8B0000 });
-      const roof = new THREE.Mesh(roofGeometry, roofMaterial);
-      roof.position.set(0, 10, 0);
-      roof.rotation.y = Math.PI / 4;
-      roof.castShadow = true;
-      scene.add(roof);
-      objects.push(roof);
-
-      // Turbine
-      const turbineGeometry = new THREE.CylinderGeometry(2, 2, 6);
-      const turbineMaterial = new THREE.MeshLambertMaterial({ color: 0x4169E1 });
-      const turbine = new THREE.Mesh(turbineGeometry, turbineMaterial);
-      turbine.position.set(-8, 3, 0);
-      turbine.castShadow = true;
-      turbine.receiveShadow = true;
-      scene.add(turbine);
-      objects.push(turbine);
-
-      // Generator housing
-      const generatorGeometry = new THREE.BoxGeometry(4, 3, 4);
-      const generatorMaterial = new THREE.MeshLambertMaterial({ color: 0x32CD32 });
-      const generator = new THREE.Mesh(generatorGeometry, generatorMaterial);
-      generator.position.set(8, 1.5, 0);
-      generator.castShadow = true;
-      generator.receiveShadow = true;
-      scene.add(generator);
-      objects.push(generator);
-
-      // Pipes
-      for (let i = 0; i < 3; i++) {
-        const pipeGeometry = new THREE.CylinderGeometry(0.5, 0.5, 12);
-        const pipeMaterial = new THREE.MeshLambertMaterial({ color: 0x708090 });
-        const pipe = new THREE.Mesh(pipeGeometry, pipeMaterial);
-        pipe.position.set(-2 + i * 2, 6, -8);
-        pipe.castShadow = true;
-        pipe.receiveShadow = true;
-        scene.add(pipe);
-        objects.push(pipe);
-      }
+      // Add BIM model placeholder
+      const placeholderGeometry = new THREE.BoxGeometry(5, 5, 5);
+      const placeholderMaterial = new THREE.MeshLambertMaterial({ color: 0x4a90e2 });
+      const placeholder = new THREE.Mesh(placeholderGeometry, placeholderMaterial);
+      placeholder.position.set(0, 2.5, 0);
+      placeholder.castShadow = true;
+      placeholder.receiveShadow = true;
+      scene.add(placeholder);
 
       // Event listeners
       window.addEventListener('resize', onWindowResize);
 
-      mountRef.current.appendChild(renderer.domElement);
+      // Append renderer to DOM
+      if (mountRef.current && renderer.domElement) {
+        mountRef.current.appendChild(renderer.domElement);
+      }
 
       setViewerReady(true);
-      console.log('SimpleBIMViewer: 3D viewer initialized successfully');
 
-      // Start animation loop with turbine rotation
+      // Start animation loop
       const animateScene = () => {
         if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !controlsRef.current) return;
 
         requestAnimationFrame(animateScene);
 
-        // Rotate turbine
-        if (turbine) {
-          turbine.rotation.y += 0.02;
-        }
-
         controlsRef.current.update();
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       };
       animateScene();
+
     } catch (error) {
-      console.error('SimpleBIMViewer: Error initializing viewer:', error);
+      console.error('Error initializing viewer:', error);
       setError('Failed to initialize 3D viewer');
     }
   };
@@ -215,8 +228,92 @@ const SimpleBIMViewer: React.FC = () => {
     rendererRef.current.setSize(width, height);
   };
 
+  const toggleAR = async () => {
+    if (!rendererRef.current) return;
+
+    if (isARMode) {
+      // Exit AR mode
+      if (arSessionRef.current) {
+        await arSessionRef.current.end();
+        arSessionRef.current = null;
+      }
+      setIsARMode(false);
+
+      // Restore orbit controls
+      if (controlsRef.current) {
+        controlsRef.current.enabled = true;
+      }
+    } else {
+      // Enter AR mode - try different session types
+      try {
+        let session = null;
+        let sessionType = '';
+
+        // Try immersive-ar first
+        if (navigator.xr && await navigator.xr.isSessionSupported('immersive-ar')) {
+          console.log('Requesting immersive-ar session');
+          session = await navigator.xr.requestSession('immersive-ar', {
+            requiredFeatures: ['local-floor', 'hit-test'],
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: mountRef.current ? { root: mountRef.current } : undefined
+          });
+          sessionType = 'immersive-ar';
+        }
+        // Try immersive-vr (for HoloLens)
+        else if (navigator.xr && await navigator.xr.isSessionSupported('immersive-vr')) {
+          console.log('Requesting immersive-vr session');
+          session = await navigator.xr.requestSession('immersive-vr', {
+            requiredFeatures: ['local-floor'],
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: mountRef.current ? { root: mountRef.current } : undefined
+          });
+          sessionType = 'immersive-vr';
+        }
+        // Try inline as fallback
+        else if (navigator.xr && await navigator.xr.isSessionSupported('inline')) {
+          console.log('Requesting inline session');
+          session = await navigator.xr.requestSession('inline', {
+            requiredFeatures: [],
+            optionalFeatures: ['dom-overlay'],
+            domOverlay: mountRef.current ? { root: mountRef.current } : undefined
+          });
+          sessionType = 'inline';
+        }
+
+        if (session) {
+          console.log(`Started ${sessionType} session`);
+          arSessionRef.current = session;
+          await rendererRef.current.xr.setSession(session as any);
+          setIsARMode(true);
+
+          // Disable orbit controls in AR/VR
+          if (controlsRef.current) {
+            controlsRef.current.enabled = false;
+          }
+
+          session.addEventListener('end', () => {
+            console.log('XR session ended');
+            setIsARMode(false);
+            arSessionRef.current = null;
+            if (controlsRef.current) {
+              controlsRef.current.enabled = true;
+            }
+          });
+        } else {
+          throw new Error('No compatible XR session type supported');
+        }
+      } catch (error) {
+        console.error('Failed to start XR session:', error);
+        alert(`XR is not supported on this device or browser.\n\nSupported session types:\n- immersive-ar: ${navigator.xr ? await navigator.xr.isSessionSupported('immersive-ar') : false}\n- immersive-vr: ${navigator.xr ? await navigator.xr.isSessionSupported('immersive-vr') : false}\n- inline: ${navigator.xr ? await navigator.xr.isSessionSupported('inline') : false}\n\nMake sure you have a compatible XR device and are using HTTPS.`);
+      }
+    }
+  };
+
   const cleanup = () => {
-    console.log('SimpleBIMViewer: Cleaning up viewer...');
+    if (arSessionRef.current) {
+      arSessionRef.current.end();
+      arSessionRef.current = null;
+    }
 
     if (rendererRef.current && mountRef.current) {
       mountRef.current.removeChild(rendererRef.current.domElement);
@@ -225,6 +322,10 @@ const SimpleBIMViewer: React.FC = () => {
 
     window.removeEventListener('resize', onWindowResize);
   };
+
+  useEffect(() => {
+    console.log('🎨 SimpleBIMViewer: Component mounted and about to render');
+  }, []);
 
   if (loading) {
     return (
@@ -264,54 +365,45 @@ const SimpleBIMViewer: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-primary)' }}>
       <Header />
 
+      {/* Project Info and Controls */}
       <div style={{
-        position: 'relative',
-        height: 'calc(100vh - 80px)',
-        overflow: 'hidden'
+        position: 'absolute',
+        top: '90px',
+        left: '20px',
+        right: '20px',
+        zIndex: 100,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start'
       }}>
         {/* Project Info */}
         <div style={{
-          position: 'absolute',
-          top: '20px',
-          left: '20px',
-          zIndex: 100,
           backgroundColor: 'rgba(255, 255, 255, 0.9)',
           padding: '15px',
           borderRadius: '8px',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          maxWidth: '400px'
         }}>
           <h3 style={{ margin: '0 0 5px 0', fontSize: '16px' }}>
-            {project?.name || 'Hydroelectric Plant Viewer'}
+            {project?.name || 'BIM Project Viewer'}
           </h3>
           <p style={{ margin: 0, fontSize: '12px', color: '#666' }}>
-            {project?.description || 'Interactive 3D visualization of hydroelectric components'}
+            {project?.description || 'Interactive 3D BIM visualization'}
+            <br />
+            <small style={{ color: '#999' }}>
+              AR Support: {isXRSupported ? '✅' : '❌'} |
+              Device: {navigator.userAgent.includes('HoloLens') || navigator.userAgent.includes('Windows Mixed Reality') ? 'HoloLens' :
+                      navigator.userAgent.includes('Mobile') || navigator.userAgent.includes('Android') || navigator.userAgent.includes('iPhone') ? 'Mobile' : 'Desktop'}
+            </small>
           </p>
-          <div style={{
-            marginTop: '10px',
-            fontSize: '11px',
-            color: '#888',
-            padding: '5px 8px',
-            backgroundColor: '#f0f0f0',
-            borderRadius: '4px'
-          }}>
-            🎮 Use mouse to orbit, zoom, and pan around the 3D model
-          </div>
         </div>
 
         {/* Controls */}
-        <div style={{
-          position: 'absolute',
-          top: '20px',
-          right: '20px',
-          zIndex: 100,
-          display: 'flex',
-          gap: '10px'
-        }}>
+        <div style={{ display: 'flex', gap: '10px' }}>
           <button
             onClick={() => navigate('/')}
             className="btn btn-secondary"
@@ -319,18 +411,59 @@ const SimpleBIMViewer: React.FC = () => {
           >
             ← Back
           </button>
-        </div>
 
-        {/* 3D Viewer Container */}
-        <div
-          ref={mountRef}
-          style={{
-            width: '100%',
-            height: '100%',
-            position: 'relative'
-          }}
-        />
+          {viewerReady && (
+            <button
+              onClick={async () => {
+                console.log('🧪 Manual WebXR test...');
+                if (navigator.xr) {
+                  console.log('WebXR available');
+                  try {
+                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                    const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                    const inlineSupported = await navigator.xr.isSessionSupported('inline');
+                    console.log('Manual check results:', { vrSupported, arSupported, inlineSupported });
+                    alert(`Manual WebXR Check:\nVR: ${vrSupported}\nAR: ${arSupported}\nInline: ${inlineSupported}`);
+                  } catch (e) {
+                    console.error('Manual check failed:', e);
+                    alert('Manual WebXR check failed: ' + (e as Error).message);
+                  }
+                } else {
+                  console.log('WebXR not available');
+                  alert('WebXR API not available');
+                }
+              }}
+              className="btn btn-info"
+              style={{ padding: '8px 12px', fontSize: '10px' }}
+            >
+              Test XR
+            </button>
+          )}
+
+          {viewerReady && isXRSupported && (
+            <button
+              onClick={toggleAR}
+              className={`btn ${isARMode ? 'btn-danger' : 'btn-primary'}`}
+              style={{ padding: '8px 12px', fontSize: '12px' }}
+            >
+              {isARMode ? '📱 Exit AR' : '📱 AR Mode'}
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* 3D Viewer Container */}
+      <div
+        ref={mountRef}
+        style={{
+          position: 'absolute',
+          top: '80px',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#f5f5f5'
+        }}
+      />
     </div>
   );
 };

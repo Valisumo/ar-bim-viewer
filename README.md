@@ -1,222 +1,322 @@
-# AR-BIM Viewer for Hydroelectric Plant Maintenance
+# AR-BIM Viewer
 
-A complete React-based AR-BIM viewer application for visualizing and maintaining hydroelectric plant components using Building Information Modeling (BIM) and Augmented Reality (AR) technologies.
+A comprehensive React-based AR-BIM viewer application for visualizing and maintaining infrastructure using Building Information Modeling (BIM) and Augmented Reality (AR) technologies. Built for field engineers, maintenance teams, and facility managers.
 
-## Features
+![AR-BIM Viewer](https://img.shields.io/badge/React-18.2.0-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-4.9.5-blue) ![Three.js](https://img.shields.io/badge/Three.js-0.135.0-black) ![WebXR](https://img.shields.io/badge/WebXR-API-green) ![Supabase](https://img.shields.io/badge/Supabase-2.38.0-orange)
 
-- **3D BIM Visualization**: Interactive 3D viewing of IFC files using Three.js
-- **AR Overlay**: WebXR-powered augmented reality for on-site maintenance
-- **User Management**: Admin and user roles with guest access
-- **Component Information**: Detailed component properties and maintenance tracking
-- **Mobile Responsive**: Optimized for field work on mobile devices
-- **Offline Capability**: Service worker for offline functionality
-- **Dark/Light Mode**: Theme switching for different environments
-- **File Upload**: IFC file upload and parsing with web-ifc
-- **Real-time Data**: Supabase integration for live data synchronization
+## 🌟 Features
 
-## Technology Stack
+### 🏗️ **3D BIM Visualization**
+- **Multiple Viewers**: Choose between Xeokit and Simple BIM viewers
+- **IFC File Support**: Industry Foundation Classes (.ifc) parsing and rendering
+- **Interactive Navigation**: Orbit, pan, zoom controls with camera presets
+- **Component Selection**: Click-to-select BIM components with detailed properties
+- **Performance Optimized**: WebGL acceleration with LOD (Level of Detail)
 
-- **Frontend**: React 18 with TypeScript
-- **3D Engine**: Three.js with OrbitControls
-- **AR**: WebXR API
-- **IFC Processing**: web-ifc and web-ifc-three
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
-- **Routing**: React Router v6
-- **Styling**: CSS Variables with responsive design
-- **PWA**: Service Worker for offline support
+### 📱 **Augmented Reality (AR)**
+- **WebXR Integration**: Native AR support for AR-capable devices
+- **Cross-Platform**: Works on HoloLens, iOS Safari, Android Chrome
+- **WebXR Polyfill**: Fallback support for older browsers
+- **HTTPS Required**: Secure context for WebXR functionality
+- **Device Detection**: Automatic capability detection and session management
 
-## Prerequisites
+### 🎨 **Modern UI/UX**
+- **Dark/Light Theme**: Complete theme system with CSS custom properties
+- **Responsive Design**: Mobile-first approach for tablets and smartphones
+- **Touch Controls**: Optimized for field work on mobile devices
+- **Admin Dashboard**: User management and system analytics
+- **Role-Based Access**: Guest, User, and Admin permission levels
 
-- Node.js 16+ and npm
-- Supabase account and project
-- Modern browser with WebXR support (for AR features)
+### 📊 **Data Management**
+- **Supabase Backend**: PostgreSQL database with real-time subscriptions
+- **File Storage**: Secure IFC file upload and management
+- **Component Tracking**: Maintenance schedules and status monitoring
+- **User Authentication**: JWT-based auth with social login options
+- **Row-Level Security**: Database-level access control
 
-## Installation
+### 🔧 **Developer Experience**
+- **TypeScript**: Full type safety throughout the application
+- **Service Worker**: Offline capability for field operations
+- **Docker Support**: Containerized deployment with docker-compose
+- **GLB Converter**: Automated IFC to GLB conversion service
+- **Hot Reload**: Fast development with React hot module replacement
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd ar-bim-viewer
-   ```
+## 🛠️ Technology Stack
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+### Frontend
+- **React 18** with TypeScript and hooks
+- **Three.js** for 3D rendering and WebGL acceleration
+- **@thatopen/components** - Modern BIM viewing components
+- **@xeokit/xeokit-bim-viewer** - High-performance BIM viewer
+- **WebXR API** with webxr-polyfill for AR support
+- **React Router v6** for client-side routing
+- **CSS Custom Properties** for theming system
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` and add your Supabase credentials:
-   ```
-   REACT_APP_SUPABASE_URL=your-supabase-project-url
-   REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ```
+### Backend & Services
+- **Supabase** (PostgreSQL + Auth + Storage + Edge Functions)
+- **GLB Converter Service** - Node.js service for IFC to GLB conversion
+- **Workbox** - Service worker for offline functionality
+- **Docker** - Containerized deployment
 
-4. **Set up Supabase database**
-   - Create a new Supabase project
-   - Run the SQL commands from `supabase-schema.sql` in your Supabase SQL editor
-   - Enable authentication providers (Email/Password recommended)
-   - Create storage bucket named `ifc-files` with public access
+### Development Tools
+- **Create React App** with CRACO configuration
+- **TypeScript** for type safety
+- **ESLint** for code quality
+- **Jest + React Testing Library** for testing
+- **Workbox** for PWA features
 
-5. **Download IFC.js WASM files**
-   ```bash
-   mkdir public/wasm
-   # Download web-ifc WASM files to public/wasm/
-   # You can get these from: https://github.com/IFCjs/web-ifc/releases
-   ```
+## 📋 Prerequisites
 
-## Usage
+- **Node.js 16+** and npm
+- **Supabase Account** for backend services
+- **Modern Browser** with WebXR support (Chrome 79+, Edge 79+, Safari 13.1+)
+- **HTTPS Support** for AR functionality (development certificates included)
+- **Docker** (optional, for containerized deployment)
 
-### Development
+## 🚀 Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone <repository-url>
+cd ar-bim-viewer
+npm install
+```
+
+### 2. Download WASM Files
+
+```bash
+mkdir public/wasm
+# Download from: https://github.com/IFCjs/web-ifc/releases
+curl -L -o public/wasm/web-ifc.wasm https://github.com/IFCjs/web-ifc/releases/download/v0.0.44/web-ifc.wasm
+curl -L -o public/wasm/web-ifc-mt.wasm https://github.com/IFCjs/web-ifc/releases/download/v0.0.44/web-ifc-mt.wasm
+```
+
+### 3. Configure Supabase
+
+1. Create a [Supabase](https://supabase.com) account and project
+2. Copy environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your Supabase credentials
+```
+
+3. Set up database:
+```bash
+# Run the SQL schema in Supabase SQL Editor
+cat supabase-schema.sql | supabase db push
+```
+
+4. Configure storage:
+- Create `ifc-files` bucket in Supabase Storage
+- Make it public with appropriate size limits
+
+### 4. Start Development
 
 ```bash
 npm start
 ```
 
-The application will open at `http://localhost:3000`.
+Visit `http://localhost:3000` to see the application.
 
-### Production Build
+### 5. Create Admin User
 
-```bash
-npm run build
-```
+1. Sign up through the app
+2. In Supabase dashboard, update user role to `admin` in the profiles table
 
-### Testing
+## 🎯 Usage Guide
 
-```bash
-npm test
-```
+### User Roles
 
-## User Roles
+#### 👤 **Guest User**
+- Browse public BIM projects
+- Basic 3D navigation and inspection
+- No upload or editing capabilities
 
-### Guest User
-- View public BIM projects
-- Basic 3D navigation
-- No upload or edit capabilities
-
-### Regular User
-- All guest capabilities
-- Upload and manage own IFC files
+#### 👨‍💼 **Regular User**
+- All guest permissions
+- Upload and manage IFC files
 - Edit component information
 - Create private projects
 
-### Admin User
-- All user capabilities
-- Manage all users and projects
-- Access admin panel
-- System analytics
+#### 👨‍💼 **Admin User**
+- All user permissions
+- User management dashboard
+- System analytics and monitoring
+- Access to all projects regardless of privacy
 
-## AR Features
+### AR Mode Setup
 
-The application supports WebXR for augmented reality experiences:
+1. **HTTPS Required**: AR mode only works over HTTPS
+2. **Device Compatibility**:
+   - **Android**: Chrome 79+ with ARCore
+   - **iOS**: Safari 13.1+ with ARKit
+   - **HoloLens**: Edge browser with WebXR
+3. **Permissions**: Allow camera access when prompted
+4. **Usage**: Click "Enter AR" button in the 3D viewer
 
-1. **Device Requirements**: AR-capable device with WebXR support
-2. **Browser Support**: Chrome/Edge on Android, Safari on iOS (with WebXR polyfill)
-3. **Usage**: Click "Enter AR" in the 3D viewer to start AR mode
+### File Management
 
-## File Support
+- **Supported Formats**: IFC 2x3, IFC 4 files
+- **Upload Limits**: Configurable via Supabase (default: 100MB)
+- **Processing**: Client-side parsing with web-ifc
+- **Storage**: Secure cloud storage with access controls
 
-- **IFC Files**: Industry Foundation Classes files (.ifc)
-- **Size Limit**: Configurable via Supabase storage settings
-- **Processing**: Client-side IFC parsing with web-ifc
+## 🐳 Deployment Options
 
-## Component Management
+### Docker Deployment
 
-- **Selection**: Click 3D objects to view component details
-- **Properties**: View IFC properties and metadata
-- **Maintenance**: Track inspection dates and maintenance notes
-- **Status**: Visual status indicators (Good/Warning/Critical)
+```bash
+# Build and run with docker-compose
+docker-compose up --build
+```
 
-## Mobile Optimization
+### Netlify/Vercel (Recommended)
 
-- Responsive design for tablets and smartphones
-- Touch-friendly controls
-- Optimized performance for mobile GPUs
-- Offline capability for field work
-
-## Security
-
-- Row Level Security (RLS) enabled on all tables
-- JWT-based authentication via Supabase
-- File upload restrictions and validation
-- Role-based access control
-
-## API Integration
-
-The application uses Supabase for:
-- **Authentication**: User registration and login
-- **Database**: PostgreSQL with real-time subscriptions
-- **Storage**: File upload and management
-- **Edge Functions**: Custom server-side logic (optional)
-
-## Deployment
-
-### Netlify/Vercel
 1. Connect your repository
-2. Set environment variables
+2. Set environment variables in dashboard
 3. Deploy with build command: `npm run build`
 
-### Self-hosted
-1. Build the application: `npm run build`
-2. Serve the `build` directory with a web server
-3. Ensure HTTPS for WebXR functionality
+### Self-Hosted
 
-## Troubleshooting
+```bash
+npm run build
+# Serve build/ directory with any static web server
+# Ensure HTTPS for AR functionality
+```
+
+### Production Scripts
+
+- `deploy-prod.sh` - Production deployment script
+- `deploy-converter.sh` - GLB converter service deployment
+- `nginx-config.conf` - Nginx configuration for production
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+REACT_APP_SUPABASE_URL=your-supabase-project-url
+REACT_APP_SUPABASE_ANON_KEY=your-supabase-anon-key
+HTTPS=true  # Required for AR mode
+SSL_CRT_FILE=cert.crt
+SSL_KEY_FILE=cert.key
+```
+
+### HTTPS Setup (Development)
+
+The project includes self-signed certificates for development:
+
+```bash
+# Install mkcert for local HTTPS
+npm install -g mkcert
+mkcert create-ca
+mkcert create-cert --domains localhost
+```
+
+## 🐛 Troubleshooting
 
 ### Common Issues
 
-1. **IFC files not loading**
-   - Ensure WASM files are in `public/wasm/`
-   - Check file format and size limits
-   - Verify CORS settings
+#### IFC Files Not Loading
+```bash
+# Check WASM files are present
+ls public/wasm/
+# Should show: web-ifc.wasm web-ifc-mt.wasm
+```
 
-2. **AR mode not working**
-   - Use HTTPS (required for WebXR)
-   - Check device and browser compatibility
-   - Enable camera permissions
+#### AR Mode Not Working
+- Verify HTTPS is enabled
+- Check browser WebXR support
+- Enable camera permissions
+- Test on AR-capable device
 
-3. **Authentication issues**
-   - Verify Supabase configuration
-   - Check environment variables
-   - Ensure RLS policies are correct
+#### Authentication Issues
+- Verify Supabase credentials in `.env`
+- Check RLS policies in database
+- Confirm user roles are set correctly
 
-### Performance Optimization
+#### Performance Issues
+- Reduce IFC file complexity
+- Enable browser hardware acceleration
+- Check WebGL support
+- Monitor memory usage
 
-- Use smaller IFC files for better performance
-- Enable gzip compression on server
-- Consider using CDN for static assets
-- Monitor memory usage with large models
+### Development Tips
 
-## Contributing
+- Use browser dev tools for 3D debugging
+- Check console for WebXR capability logs
+- Monitor network tab for file loading
+- Use React DevTools for component inspection
+
+## 📊 API & Database
+
+### Supabase Schema
+
+- **profiles** - User profiles with roles
+- **projects** - BIM project metadata
+- **components** - BIM component tracking
+- **maintenance_logs** - Maintenance records
+
+### Storage Buckets
+
+- **ifc-files** - IFC file storage
+- **glb-files** - Converted GLB files
+- **thumbnails** - Project preview images
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## License
+### Development Setup
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+```bash
+npm install
+npm start
+# Visit http://localhost:3000
+```
 
-## Support
+### Code Quality
 
-For support and questions:
-- Check the troubleshooting section
-- Review Supabase documentation
-- Check Three.js and web-ifc documentation
-- Open an issue on GitHub
+- TypeScript for type safety
+- ESLint for code consistency
+- Prettier for code formatting
+- Jest for unit testing
 
-## Roadmap
+## 📄 License
 
-- [ ] Advanced AR features (object anchoring, occlusion)
-- [ ] Multi-language support
-- [ ] Advanced analytics and reporting
-- [ ] Integration with IoT sensors
-- [ ] Collaborative editing features
-- [ ] Export capabilities (PDF reports, etc.)
-- [ ] Advanced search and filtering
-- [ ] Scheduled maintenance workflows
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **@thatopen** - Modern BIM viewing components
+- **xeokit** - High-performance WebGL BIM viewer
+- **Three.js** - 3D graphics library
+- **web-ifc** - IFC file parsing
+- **Supabase** - Backend-as-a-service platform
+
+## 🗺️ Roadmap
+
+- [ ] **Advanced AR Features**: Object anchoring, occlusion, spatial audio
+- [ ] **Multi-Language Support**: i18n for international deployments
+- [ ] **IoT Integration**: Sensor data visualization
+- [ ] **Collaborative Features**: Real-time multi-user editing
+- [ ] **Advanced Analytics**: Maintenance prediction, usage reports
+- [ ] **Mobile Apps**: React Native companion apps
+- [ ] **Offline Sync**: Advanced offline capability
+- [ ] **API Integrations**: Third-party BIM software support
+
+## 📞 Support
+
+- 📖 **Documentation**: Check this README and SETUP.md
+- 🐛 **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+- 📧 **Email**: For enterprise support inquiries
+
+---
+
+**Built with ❤️ for infrastructure professionals worldwide**

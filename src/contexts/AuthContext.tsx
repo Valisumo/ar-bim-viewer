@@ -4,22 +4,22 @@ import { supabase, UserProfile, UserRole } from '../config/supabase';
 
 interface AuthContextType {
   user: User | null;
-  profile: UserProfile | null;
   session: Session | null;
+  profile: UserProfile | null;
   loading: boolean;
+  isAdmin: boolean;
+  isGuest: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   joinAsGuest: () => void;
-  isAdmin: boolean;
-  isGuest: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -27,101 +27,15 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
 
-  useEffect(() => {
-    console.log('AuthContext: Initializing...');
-
-    let isMounted = true;
-    let loadingTimeout: NodeJS.Timeout;
-    let profileTimeout: NodeJS.Timeout;
-
-    // Add timeout to prevent infinite loading
-    loadingTimeout = setTimeout(() => {
-      if (isMounted) {
-        console.log('AuthContext: Loading timeout - forcing loading to false');
-        setLoading(false);
-        setInitialized(true);
-      }
-    }, 3000); // 3 second timeout
-
-    // Get initial session
-    const initializeAuth = async () => {
-      try {
-        console.log('AuthContext: Getting initial session...');
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (!isMounted) return;
-
-        console.log('AuthContext: Initial session result:', session ? 'exists' : 'null', error ? 'with error' : '');
-
-        clearTimeout(loadingTimeout);
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          console.log('AuthContext: User session found, fetching profile...');
-          await fetchUserProfile(session.user.id);
-        } else {
-          console.log('AuthContext: No session found, stopping loading');
-          setLoading(false);
-          setInitialized(true);
-        }
-      } catch (error) {
-        console.error('AuthContext: Error getting session:', error);
-        if (isMounted) {
-          clearTimeout(loadingTimeout);
-          setLoading(false);
-          setInitialized(true);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('AuthContext: Auth state changed:', event, session ? 'session exists' : 'no session');
-
-      if (!isMounted) return;
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        // Clear any existing profile timeout
-        if (profileTimeout) clearTimeout(profileTimeout);
-
-        profileTimeout = setTimeout(() => {
-          console.log('AuthContext: Profile fetch timeout, stopping loading');
-          setLoading(false);
-          setInitialized(true);
-        }, 2000);
-
-        await fetchUserProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
-        setInitialized(true);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      if (loadingTimeout) clearTimeout(loadingTimeout);
-      if (profileTimeout) clearTimeout(profileTimeout);
-      subscription.unsubscribe();
-    };
-  }, []);
+  const isAdmin = profile?.role === 'admin';
+  const isGuest = profile?.role === 'guest';
 
   const fetchUserProfile = async (userId: string) => {
     console.log('AuthContext: Fetching profile for user:', userId);
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -129,105 +43,156 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('AuthContext: Error fetching profile:', error);
-        // Create a default profile if fetch fails
+      if (error) {
+        const code = (error as any)?.code;
+        if (code && code !== 'PGRST116') {
+          console.error('AuthContext: Profile fetch error:', error);
+        } else {
+          console.warn('AuthContext: No profile row, creating default');
+        }
         setProfile({
           id: userId,
           role: 'user',
           full_name: 'User',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         });
-        setLoading(false);
-        setInitialized(true);
-      } else if (data) {
-        console.log('AuthContext: Profile fetched successfully:', data);
-        setProfile(data);
-        setLoading(false);
-        setInitialized(true);
-      } else {
-        console.log('AuthContext: No profile found, creating default profile');
-        // Create a basic user profile if none exists
-        setProfile({
+        return;
+      }
+
+      setProfile(
+        data ?? {
           id: userId,
           role: 'user',
-          full_name: 'New User',
+          full_name: 'User',
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-        setLoading(false);
-        setInitialized(true);
-      }
-    } catch (error) {
-      console.error('AuthContext: Error fetching profile:', error);
-      // Always create a fallback profile and stop loading
+          updated_at: new Date().toISOString(),
+        }
+      );
+      console.log('AuthContext: Profile ready');
+    } catch (e) {
+      console.error('AuthContext: Profile fetch crash:', e);
       setProfile({
         id: userId,
         role: 'user',
         full_name: 'User',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       });
+    } finally {
+      // IMPORTANT: Always end loading
+      console.log('AuthContext: Setting loading to false in fetchUserProfile finally');
       setLoading(false);
-      setInitialized(true);
     }
   };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+  useEffect(() => {
+    let mounted = true;
+    console.log('AuthContext: Initializing auth...');
+
+    async function init() {
+      try {
+        console.log('AuthContext: Calling getSession...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('AuthContext: getSession result:', { session: !!session, error });
+
+        if (!mounted) return;
+
+        if (error) console.warn('AuthContext: getSession error', error);
+
+        setSession(session ?? null);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          console.log('AuthContext: Session exists, fetching profile...');
+          await fetchUserProfile(session.user.id); // ends loading in finally
+        } else {
+          console.log('AuthContext: No session, setting loading to false immediately');
+          setProfile(null);
+          setLoading(false); // end loading immediately if no session
+        }
+      } catch (e) {
+        console.error('AuthContext: Auth init crash', e);
+        if (mounted) {
+          setProfile(null);
+          setLoading(false);
+        }
+      }
+    }
+
+    init();
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      console.log('AuthContext: Auth state change:', event, session ? 'session exists' : 'no session');
+      setSession(session ?? null);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id); // ends loading in finally
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
+
+    return () => {
+      mounted = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const signIn = async (email: string, password: string): Promise<{ error: any }> => {
+    console.log('AuthContext: Attempting sign in for:', email);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log('AuthContext: Sign in result:', { error: !!error });
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string): Promise<{ error: any }> => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: {
-          full_name: fullName,
-        },
-      },
+        data: { full_name: fullName }
+      }
     });
     return { error };
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
   };
 
   const joinAsGuest = () => {
     console.log('AuthContext: Joining as guest');
-    const guestProfile: UserProfile = {
+    setProfile({
       id: 'guest',
-      role: 'guest',
+      role: 'guest' as UserRole,
       full_name: 'Guest User',
+      email: 'guest@example.com',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    };
-    setProfile(guestProfile);
+    });
     setLoading(false);
-    setInitialized(true);
   };
 
-  const isAdmin = profile?.role === 'admin';
-  const isGuest = profile?.role === 'guest';
-
-  const value = {
+  const value: AuthContextType = {
     user,
-    profile,
     session,
+    profile,
     loading,
+    isAdmin,
+    isGuest,
     signIn,
     signUp,
     signOut,
     joinAsGuest,
-    isAdmin,
-    isGuest,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
